@@ -1,0 +1,314 @@
+<div class="card">
+  <!-- begin::Header -->
+  <div class="card-header border-0 pt-5">
+    <h3 class="card-title align-items-start flex-column">
+      <span class="card-label fw-bolder fs-3 mb-1">{{
+        "MENU.PROGRAMSREPORT" | translate
+      }}</span>
+    </h3>
+    <div
+      class="card-toolbar"
+      data-bs-toggle="tooltip"
+      data-bs-placement="top"
+      data-bs-trigger="hover"
+      title="Click to add a user"
+    >
+      <!-- <button
+        class="btn btn-sm btn-light-primary"
+        (click)="isVisiable = !isVisiable"
+      >
+        <span><i class="fa fa-filter" aria-hidden="true"></i></span>
+      </button> -->
+    </div>
+  </div>
+  <!-- end::Header -->
+
+  <!-- begin::Body -->
+  <div class="card-body py-3">
+    <form [formGroup]="filterForm" (ngSubmit)="getReport()" *ngIf="isVisiable">
+      <div class="row">
+        <div class="col-auto">
+          <select
+            class="form-select form-select-solid form-select-lg fw-bold"
+            formControlName="program_id"
+            style="background-color: white"
+          >
+            <option value="">{{ "MENU.PROGRAMS" | translate }}</option>
+            <option *ngFor="let program of programList" [value]="program.id">
+              {{ program.name }}
+            </option>
+          </select>
+        </div>
+        <div class="col-auto">
+          <select
+            class="form-select form-select-solid form-select-lg fw-bold"
+            formControlName="status_id"
+            style="background-color: white"
+          >
+            <option value="">{{ "MENU.STATUS" | translate }}</option>
+            <option *ngFor="let student of statusList" [value]="student.id">
+              {{
+                translate.defaultLang == "en" ? student.name : student.name_ar
+              }}
+            </option>
+          </select>
+        </div>
+        <div class="d-flex justify-content-between py-4 px-6">
+          <!-- Left side: inputs -->
+          <div class="d-flex gap-3">
+            <!-- Search input -->
+            <div
+                    class="card-toolbar col-md-3"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="top"
+                    data-bs-trigger="hover"
+                    *ngIf="isVisiable"
+                    style="width: 300px;"
+            >
+              <input
+                      type="text"
+                      class="form-control form-control-solid"
+                      placeholder="{{ 'searchByNameCPRID' | translate }}"
+                      (input)="search($event)"
+              />
+            </div>
+            
+            <!-- From date picker -->
+            <div
+                    class="card-toolbar"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="top"
+                    data-bs-trigger="hover"
+                    *ngIf="isVisiable"
+                    style="width: 150px;"
+            >
+                <input
+                        style="border: 1px solid #dbdfe9;"
+                        type="text"
+                        placeholder="{{ 'fromDate' | translate }}"
+                        class="form-control form-control-solid"
+                        bsDatepicker
+                        (bsValueChange)="dateFrom($event)"
+                        #d5="bsDatepicker"
+                        [bsConfig]="{
+                  containerClass: 'theme-blue',
+                  dateInputFormat: 'YYYY-MM-DD',
+                  isAnimated: true
+                }"
+                />
+            </div>
+            
+            <!-- To date picker -->
+            <div
+                    class="card-toolbar"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="top"
+                    data-bs-trigger="hover"
+                    *ngIf="isVisiable"
+                    style="width: 150px;"
+            >
+              <input
+                      style="border: 1px solid #dbdfe9;"
+                      type="text"
+                      placeholder="{{ 'toDate' | translate }}"
+                      class="form-control form-control-solid"
+                      bsDatepicker
+                      (bsValueChange)="dateTo($event)"
+                      #d5="bsDatepicker"
+                      [bsConfig]="{
+                  containerClass: 'theme-blue',
+                  dateInputFormat: 'YYYY-MM-DD',
+                  isAnimated: true
+                }"
+              />
+            </div>
+          </div>
+          
+          <!-- Right side: buttons -->
+          <div class="d-flex gap-2">
+            <!-- Export buttons -->
+            <button
+                    type="button"
+                    class="btn btn-sm btn-primary"
+                    (click)="exportToPdf()"
+                    [disabled]="isLoading"
+            >
+              <i class="fa fa-file-pdf me-1"></i>
+              {{ 'EXPORT.PDF' | translate }}
+            </button>
+            <button
+                    type="button"
+                    class="btn btn-sm btn-success"
+                    (click)="exportToExcel()"
+                    [disabled]="isLoading"
+            >
+              <i class="fa fa-file-excel me-1"></i>
+              {{ 'EXPORT.EXCEL' | translate }}
+            </button>
+            
+            <!-- Search button -->
+            <button type="submit" class="btn btn-sm btn-primary">
+              <ng-container *ngIf="!isLoading">
+                <i class="fa fa-search" aria-hidden="true"></i>
+              </ng-container>
+              <ng-container *ngIf="isLoading"
+                ><i class="fa fa-spinner fa-sharp fa-beat" aria-hidden="true"></i
+              ></ng-container>
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <!-- begin::Table container -->
+    <div class="table-responsive">
+      <!-- begin::Table -->
+      <table
+        class="table table-row-dashed table-row-gray-300 align-middle gs-0 gy-4"
+      >
+        <!-- begin::Table head -->
+        <thead>
+          <tr class="fw-bolder text-muted">
+            <th
+                    class="min-w-130px hover-primary"
+                    (click)="sort('full_name')"
+            >{{ "AUTH.INPUT.FULLNAME" | translate }}</th>
+            <th
+                    class="min-w-140px hover-primary"
+                    (click)="sort('program_id')"
+            >{{ "programID" | translate }}</th>
+            <th
+                    class="min-w-140px hover-primary"
+                    (click)="sort('cpr')"
+            >{{ "cpr" | translate }}</th>
+            <th
+                    class="min-w-120px hover-primary"
+                    (click)="sort('program')"
+            >{{ "Program" | translate }}</th>
+            <th
+                    class="min-w-120px hover-primary"
+                    (click)="sort('apply_date')"
+            >{{ "applyDate" | translate }}</th>
+            <th
+                    class="min-w-120px hover-primary"
+                    (click)="sort('age_applied')"
+            >{{ "ageApplied" | translate }}</th>
+            <th
+                    class="min-w-120px hover-primary"
+                    (click)="sort('age')"
+            >{{ "age" | translate }}</th>
+            <th
+                    class="min-w-120px hover-primary"
+                    (click)="sort('phone_number')"
+            >{{ "otherNumbers" | translate }}</th>
+            <th
+                    class="min-w-140px"
+                    (click)="sort('status')"
+            >{{ "status" | translate }}</th>
+          </tr>
+        </thead>
+        <!-- end::Table head -->
+        <!-- begin::Table body -->
+        <tbody>
+          <tr *ngFor="let history of filtered">
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-start flex-column">
+                  <a
+                    [routerLink]="[
+                      '/apps/childrens/edit-child/' + history.id + '/basic-data'
+                    ]"
+                  >
+                    <p class="text-dark fw-bolder text-hover-primary fs-6">
+                      {{ history.full_name }}
+                    </p>
+                  </a>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-start flex-column">
+                  <p class="text-dark fw-bolder text-hover-primary fs-6">
+                    {{ history.child_programs.id }}
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-start flex-column">
+                  <p class="text-dark fw-bolder text-hover-primary fs-6">
+                    {{ history.cpr }}
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-start flex-column">
+                  <p class="text-dark fw-bolder text-hover-primary fs-6">
+                    {{ history.program.name }}
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-start flex-column">
+                  <p class="text-dark fw-bolder text-hover-primary fs-6">
+                    {{ history.child_programs.created_at?.split("T")[0] }}
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-start flex-column">
+                  <p class="text-dark fw-bolder text-hover-primary fs-6">
+                    {{ history.age_applied }}
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-start flex-column">
+                  <p class="text-dark fw-bolder text-hover-primary fs-6">
+                    {{ history.age }}
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-start flex-column">
+                  <p class="text-dark fw-bolder text-hover-primary fs-6">
+                    {{ history.guardian?.phone }}
+                  </p>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="d-flex justify-content-start flex-column">
+                  <p class="text-dark fw-bolder text-hover-primary fs-6">
+                    {{
+                      translate.defaultLang == "ar"
+                        ? history.status.name_ar
+                        : history.status.name
+                    }}
+                  </p>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+        <!-- end::Table body -->
+      </table>
+      <!-- end::Table -->
+    </div>
+    <!-- end::Table container -->
+  </div>
+  <!-- begin::Body -->
+</div>
